@@ -28,7 +28,7 @@ jobs:
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
 
         with:
-          id:  ${{ secrets.KAGGLE_USERNAME }}/kaggle--nfl-player-contact-detection
+          id:  ${{ secrets.KAGGLE_USERNAME }}/nfl-player-contact-detection
           title: "1st and Future - Player Contact Detection"
           subtitle: "Detect Player Contacts from Sensor and Video Data"
           description: "some description"
