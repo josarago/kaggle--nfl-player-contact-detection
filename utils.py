@@ -14,7 +14,7 @@ def add_contact_id(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def expand_contact_id(df: pd.DataFrame) -> pd.DataFrame:
+def expand_contact_id(df: pd.DataFrame, drop=True) -> pd.DataFrame:
     """
     Splits out contact_id into seperate columns.
     """
@@ -22,4 +22,7 @@ def expand_contact_id(df: pd.DataFrame) -> pd.DataFrame:
     df["step"] = df["contact_id"].str.split("_").str[-3].astype("int")
     df["nfl_player_id_1"] = df["contact_id"].str.split("_").str[-2]
     df["nfl_player_id_2"] = df["contact_id"].str.split("_").str[-1]
+    if drop:
+        return df.drop(columns=["contact_id"])
     return df
+
