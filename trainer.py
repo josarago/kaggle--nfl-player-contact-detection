@@ -19,12 +19,13 @@ TRACKING_DATA_COLS = (
 	"x_position", 
 	"y_position", 
 	"speed", 
-	"direction", 
+	"direction",
+	"orientation",
 	"acceleration", 
 	"sa", 
 	"team", 
 	"position"
-	)
+)
 
 class ModelTrainer:
 	def __init__(self,
@@ -79,13 +80,14 @@ class ModelTrainer:
 		)
 		return submission_ref_df, test_tracking_df
 
-	@staticmethod
 	def join_tracking_data(
+		self,
 		contact_df: pd.DataFrame,
 		tracking_df: pd.DataFrame,
-		tracking_data_cols=["x_position", "y_position", "speed", "direction", "acceleration", "sa", "team", "position"],
+		tracking_data_cols=list(TRACKING_DATA_COLS),
 		sample_frac=0.05
 	):
+		self._tracking_data_cols = tracking_data_cols
 		used_cols = tracking_data_cols + ["game_play", "step", "nfl_player_id"]
 
 		if sample_frac is None or sample_frac == 1.0:
@@ -152,7 +154,7 @@ class ModelTrainer:
 		test_feature_df = self.join_tracking_data(
 			contact_df=test_contact_df,
 			tracking_df=test_tracking_df,
-			tracking_data_cols=["x_position", "y_position", "speed", "direction", "acceleration", "sa", "team", "position"],
+			tracking_data_cols=self._tracking_data_cols,
 			sample_frac=None
 		)
 

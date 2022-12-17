@@ -2,7 +2,20 @@ import numpy as np
 
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
+from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
+
+_RAW_TRACKING_FEATURES = (
+    'x_position',
+    'y_position',
+    'speed',
+    'direction',
+    'orientation',
+    'acceleration',
+    'sa'
+)
+
+RAW_TRACKING_FEATURES = [f"{col}_1" for col in _RAW_TRACKING_FEATURES] + [f"{col}_2" for col in _RAW_TRACKING_FEATURES]
 
 def get_players_distance(df):
     return ((df["x_position_2"] - df["x_position_1"]) ** 2 +  \
@@ -53,9 +66,17 @@ is_ground_contact_pipe = Pipeline(
     ]
 )
 
+raw_tracking_pipe = Pipeline(
+    steps=[
+        ("scale", StandardScaler(with_mean=True)),
+        ("impute", SimpleImputer(strategy="constant", fill_value=-1))
+    ]
+)
+
+raw_features_pipe = ColumnTransformer([("raw_tracking_features", raw_tracking_pipe, RAW_TRACKING_FEATURES)])
 
 tracking_pipeline = FeatureUnion(
-    [
+    [   ("raw_features", raw_features_pipe),
         ("players_distance", players_distance_pipe),
         ("relative_speed", players_relative_speed_pipe),
         ("same_team", same_team_pipe),

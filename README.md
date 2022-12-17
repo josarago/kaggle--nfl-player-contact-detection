@@ -9,7 +9,7 @@ The simplest way to get started is to use only the sensor data, since they are t
 To predict a contact between players, we clearly need to use the sensor data for both of them: for instance a sustained contact probably implies a low relative speed. It is also likely that we want to predict the entire sequence of contact between two players at once, as the presence (or absence) of a contact at a given time is likely to affect the probability of a contact right after.
 
 
-## Submission 0:
+## Submission 0
 **Features**:
 No feature
 
@@ -37,4 +37,24 @@ Dummy classifier: the contact is 1 with probability the mean value of the column
 
 **Model**: Decision Tree classifier, no hyperparameter tuning
 
-**Score**: ...
+**Score**: 0.442
+
+## Submission 3
+**Features**:
+- distance between players
+- relative speed between players
+- are the players in the same team (boolean)
+- is contact with ground (boolean)
+- raw features: 
+	`x_position`,
+    `y_position`,
+    `speed`,
+    `direction`,
+    `orientation`,
+    `acceleration`,
+    `sa`
+
+**Model**: Decision Tree classifier, no hyperparameter tuning
+
+**Score**: ...?
+
