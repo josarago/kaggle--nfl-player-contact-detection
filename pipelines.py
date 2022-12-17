@@ -25,8 +25,6 @@ def get_relative_speed(df):
     vy_2 = (df["speed_2"] * np.sin(df["direction_2"] * np.pi / 180)).values.reshape(-1, 1)
     v = np.sqrt((vx_2 - vx_1)**2 + (vy_2 - vy_1)**2)
     return v
-
-# def get_imputation_speed(v):
     
 
 players_relative_speed_pipe = Pipeline(
@@ -37,10 +35,31 @@ players_relative_speed_pipe = Pipeline(
     ]
 )
 
+def players_are_same_team(df):
+    return (df["team_1"]==df["team_2"]).values.reshape(-1, 1)
+
+same_team_pipe = Pipeline(
+    steps=[
+        ("are_same_team", FunctionTransformer(players_are_same_team))
+    ]
+)
+
+def is_ground_contact(df):
+    return (df["nfl_player_id_2"]=="G").values.reshape(-1, 1)
+
+is_ground_contact_pipe = Pipeline(
+    steps=[
+        ("is_ground_contact", FunctionTransformer(is_ground_contact))
+    ]
+)
+
+
 tracking_pipeline = FeatureUnion(
     [
         ("players_distance", players_distance_pipe),
-        ("relative_speed", players_relative_speed_pipe)
+        ("relative_speed", players_relative_speed_pipe),
+        ("same_team", same_team_pipe),
+        ("is_ground_contact", is_ground_contact_pipe)
     ]
 
 )
