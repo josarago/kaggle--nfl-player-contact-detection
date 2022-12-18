@@ -18,6 +18,22 @@ Dummy classifier: the contact is 1 with probability the mean value of the column
 
 **Score**: 0.0
 
+## Submission 1
+**Feature**:
+- distance between players
+
+**Model**:
+- Decision tree or SVM with gridsearch
+
+
+
+#
+# Cross validation strategy
+- Contacts are likely to have some have amount of auto-correlation, meaning that if a player is in contact (resp. not in contact) with another player. If that is true, this suggests we should use K-fold cross validation with `game_play` as a group
+- contacts are overall relatively rare: ~1.4% of all allowable contacts in the training set. If we use grouped K-fold cross-validation, we should probably consider insuring that contacts are not completely absent of some of the folds. If we train a binary classifier, it seems like a Stratified K-Folds with non-overlapping groups strategy is the most appropriate (`StratifiedGroupKFold`)
+
+
+
 
 ## Submission 1
 **Features**:
@@ -56,5 +72,6 @@ Dummy classifier: the contact is 1 with probability the mean value of the column
 
 **Model**: Decision Tree classifier, no hyperparameter tuning
 
-**Score**: ...?
+**Score**: 0.462
+
 
