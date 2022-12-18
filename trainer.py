@@ -1,8 +1,12 @@
 
 import pandas as pd
 from sklearn.metrics import matthews_corrcoef
+from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold, GridSearchCV
+from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import LinearSVC
 import lightgbm as lgb
+
 
 from config import (
 	TRAIN_LABELS_PATH,
@@ -25,6 +29,45 @@ TRACKING_DATA_COLS = (
 	"sa", 
 	"team", 
 	"position"
+)
+
+CV_N_SPLITS = 5
+GRID_SEARCH_PARAM_GRID = dict()
+GRID_SEARCH_PARAM_GRID["decision_tree"] = dict(
+	criterion = ["gini", "entropy", "log_loss"],
+	# splitter='best',
+	max_depth=[1], 
+	min_samples_split=[5, 10, 20],
+	min_samples_leaf=[5, 10, 20],
+	# min_weight_fraction_leaf=0.0,
+	max_features=[1],
+	# random_state=None,
+	# max_leaf_nodes=None,
+	# min_impurity_decrease=0.0,
+	class_weight=["balanced"],
+	# ccp_alpha=0.0
+)
+
+
+GRID_SEARCH_PARAM_GRID["svm"] = dict(
+	# penalty='l2', 
+	# loss='squared_hinge',
+	# dual=True,
+	# tol=0.0001,
+	C=[0.5, 1.0, 1.5],
+	# multi_class='ovr',
+	fit_intercept=[True],
+	# intercept_scaling=1,
+	class_weight=["balanced"],
+	# verbose=0,
+	# random_state=None,
+	max_iter=[5, 10, 100],
+)
+
+GRID_SEARCH_PARAM_GRID["lr"] = dict( 
+	C=[0.5, 1.0, 1.5], 
+	class_weight=["balanced"],
+	n_jobs=[-1]
 )
 
 class ModelTrainer:
@@ -111,41 +154,72 @@ class ModelTrainer:
 
 		return feature_df
 
-	def get_training_set(self, df):
-		df_features = df[self._feature_columns]
-		y = df[self._target_columns].values
-		return df_features, y
+	# def get_training_set(self, df):
+	# 	df_features = df[self._feature_columns]
+	# 	y = df[self._target_columns].values
+	# 	return df_features, y
 
-
-	def train(self, X, y, params=None):
+	def init_model(self):
 		if self._model_type == "decision_tree":
 			print("creating Decision Tree classifier")
 			self.model = DecisionTreeClassifier()
-		elif self._model_type == "lgbm":
-			print("creating LightGBM classifier")
-			self.model = lgb.LGBMClassifier(**params if params else {})
+		if self._model_type == "svm":
+			print("creating SVM classifier")
+			self.model = LinearSVC()
+		if self._model_type == "lr":
+			print("creating Logistic Regression classifier")
+			self.model = LogisticRegression()
+		# elif self._model_type == "lgbm":
+		# 	print("creating LightGBM classifier")
+		# 	self.model = lgb.LGBMClassifier(**params if params else {})
+		# if with_cv:
+		# 	self.model = None
+
+	def simple_train(self, X, y, params=None):
+		self.init_model()
 		self.model.fit(X, y)
 
-	def predict(self, X):
-		return self.model.predict(X)
+
+	def grid_search(self, X, y, groups=None, param_grid=None):
+		self.init_model()
+		if groups is not None:
+			cv = StratifiedGroupKFold(
+				n_splits=CV_N_SPLITS,
+				shuffle=False,
+			)
+		else:
+			cv = StratifiedKFold(
+				n_splits=CV_N_SPLITS,
+			)
+			
+		_param_grid = param_grid if param_grid is not None else GRID_SEARCH_PARAM_GRID[self._model_type]
+		self.clf = GridSearchCV(
+			self.model,
+			param_grid=_param_grid,
+			scoring="roc_auc",
+			cv=cv,
+			n_jobs=-1,
+			verbose=1
+		)
+		self.clf.fit(X, y, groups=groups)
 	
 	def evaluate(self, y_true, y_pred):
 		return matthews_corrcoef(y_true, y_pred)
 
-	@staticmethod
-	def split_data(df_features, y, test_size, random_state=42, use_game_play=True):
-		(
-			df_features_train,
-			df_features_test,
-			y_train,
-			y_test
-		) = train_test_split(
-			df_features,
-			y,
-			test_size=test_size,
-			random_state=random_state
-		)
-		return df_features_train, df_features_test, y_train, y_test
+	# @staticmethod
+	# def split_data(df_features, y, test_size, random_state=42):
+	# 	(
+	# 		df_features_train,
+	# 		df_features_test,
+	# 		y_train,
+	# 		y_test
+	# 	) = train_test_split(
+	# 		df_features,
+	# 		y,
+	# 		test_size=test_size,
+	# 		random_state=random_state
+	# 	)
+	# 	return df_features_train, df_features_test, y_train, y_test
 
 	def make_submission_df(self, write_file=True):
 		submission_ref_df, test_tracking_df = self.load_test_data()
