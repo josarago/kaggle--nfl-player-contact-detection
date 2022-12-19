@@ -5,8 +5,6 @@ from sklearn.preprocessing import FunctionTransformer, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 
-from config import MAX_X_POSITION
-
 _RAW_TRACKING_FEATURES = (
     'x_position',
     'y_position',
@@ -27,7 +25,7 @@ players_distance_pipe = Pipeline(
     steps=[
         ("get_players_distance", FunctionTransformer(get_players_distance)),
         ("scale", StandardScaler(with_mean=False)),
-        ("impute", SimpleImputer(strategy="constant", fill_value=10 * MAX_X_POSITION))
+        ("impute", SimpleImputer(strategy="constant", fill_value=-1))
     ]
 )
 
