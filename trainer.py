@@ -90,7 +90,7 @@ class ModelTrainer:
 		contact_df: pd.DataFrame,
 		tracking_df: pd.DataFrame,
 		tracking_data_cols=list(TRACKING_DATA_COLS),
-		sample_frac=0.05
+		sample_frac=None
 	):
 		self._tracking_data_cols = tracking_data_cols
 		used_cols = tracking_data_cols + ["game_play", "step", "nfl_player_id"]
