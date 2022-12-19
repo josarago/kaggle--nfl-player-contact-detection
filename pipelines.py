@@ -76,7 +76,8 @@ raw_tracking_pipe = Pipeline(
 raw_features_pipe = ColumnTransformer([("raw_tracking_features", raw_tracking_pipe, RAW_TRACKING_FEATURES)])
 
 tracking_pipeline = FeatureUnion(
-    [   ("raw_features", raw_features_pipe),
+    [   
+        ("raw_features", raw_features_pipe),
         ("players_distance", players_distance_pipe),
         ("relative_speed", players_relative_speed_pipe),
         ("same_team", same_team_pipe),

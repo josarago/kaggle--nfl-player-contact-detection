@@ -1,8 +1,11 @@
 
 import pandas as pd
 from sklearn.metrics import matthews_corrcoef
+from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold, GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import LinearSVC
 import lightgbm as lgb
+
 
 from config import (
 	TRAIN_LABELS_PATH,
@@ -26,6 +29,8 @@ TRACKING_DATA_COLS = (
 	"team", 
 	"position"
 )
+
+CV_N_SPLITS = 3
 
 class ModelTrainer:
 	def __init__(self,
@@ -111,41 +116,60 @@ class ModelTrainer:
 
 		return feature_df
 
-	def get_training_set(self, df):
-		df_features = df[self._feature_columns]
-		y = df[self._target_columns].values
-		return df_features, y
+	# def get_training_set(self, df):
+	# 	df_features = df[self._feature_columns]
+	# 	y = df[self._target_columns].values
+	# 	return df_features, y
 
-
-	def train(self, X, y, params=None):
+	def init_model(self, params={}):
 		if self._model_type == "decision_tree":
 			print("creating Decision Tree classifier")
-			self.model = DecisionTreeClassifier()
+			self.model = DecisionTreeClassifier(**params)
 		elif self._model_type == "lgbm":
 			print("creating LightGBM classifier")
-			self.model = lgb.LGBMClassifier(**params if params else {})
+			self.model = lgb.LGBMClassifier(**params)
+
+
+	def simple_train(self, X, y, params=None):
+		self.init_model()
 		self.model.fit(X, y)
 
-	def predict(self, X):
-		return self.model.predict(X)
-	
+	def grid_search(
+			self,
+			X,
+			y,
+			groups=None,
+			param_grid=None
+		):
+		self.init_model()
+		if groups is not None:
+			cv = StratifiedGroupKFold(
+				n_splits=CV_N_SPLITS,
+				shuffle=False,
+			)
+		else:
+			cv = StratifiedKFold(
+				n_splits=CV_N_SPLITS,
+			)
+			
+		_param_grid = param_grid if param_grid is not None else GRID_SEARCH_PARAM_GRID[self._model_type]
+		self.clf = GridSearchCV(
+			self.model,
+			param_grid=_param_grid,
+			scoring="roc_auc",
+			cv=cv,
+			n_jobs=-1,
+			verbose=3
+		)
+		self.clf.fit(X, y, groups=groups)
+		self._best_params = self.clf.best_params_
+
+	def full_fit_with_best_params(self, X, y):
+		self.init_model(params=self._best_params)
+		self.model.fit(X, y)
+
 	def evaluate(self, y_true, y_pred):
 		return matthews_corrcoef(y_true, y_pred)
-
-	@staticmethod
-	def split_data(df_features, y, test_size, random_state=42, use_game_play=True):
-		(
-			df_features_train,
-			df_features_test,
-			y_train,
-			y_test
-		) = train_test_split(
-			df_features,
-			y,
-			test_size=test_size,
-			random_state=random_state
-		)
-		return df_features_train, df_features_test, y_train, y_test
 
 	def make_submission_df(self, write_file=True):
 		submission_ref_df, test_tracking_df = self.load_test_data()
@@ -160,32 +184,10 @@ class ModelTrainer:
 
 		X_test = self._tracking_pipeline.transform(test_feature_df)
 		submission_df = submission_ref_df.copy()
-		submission_df["contact"] = self.predict(X_test)
+		submission_df["contact"] = self.model.predict(X_test)
 		# submission
 		submission_df = submission_df[['contact_id', 'contact']]
 		if write_file:
 			print(f"Writing submission to: '{self._submission_file_name}'")
 			submission_df.to_csv(self._submission_file_name, index=False)
 		return submission_df
-
-# if __name__ == "__main__":
-# 	trainer = ModelTrainer(submission_file_name=SUBMISSION_FILE_NAME)
-# 	train_labels_df, train_tracking_df = trainer.load_training_data()
-
-# 	train_feature_df = trainer.join_tracking_data(
-# 		contact_df=train_labels_df,
-# 		tracking_df=train_tracking_df,
-# 		tracking_data_cols=["x_position", "y_position", "speed", "direction", "acceleration", "sa", "team", "position"],
-#  	   	sample_frac=None
-# 	)
-
-# 	X_train = trainer._tracking_pipeline.fit_transform(train_feature_df)
-# 	y_train = train_feature_df["contact"].values
-
-# 	trainer.train(X_train, y_train, params=LGBM_TRAINING_PARAMS)
-# 	y_train_pred = trainer.predict(X_train)
-
-# 	print(f"training set score: {trainer.evaluate(y_train, y_train_pred)}")
-# 	submission_df = trainer.make_submission_df(write_file=True)
-	
-	
