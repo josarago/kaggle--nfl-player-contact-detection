@@ -65,7 +65,7 @@ GRID_SEARCH_PARAM_GRID["lgbm"] = dict(
 
 GRID_SEARCH_PARAM_GRID["xgb"] = dict(
 	tree_method=["gpu_hist"] if torch.cuda.is_available() else ["hist"],
-	n_estimators=[20, , 100, 150],
+	n_estimators=[20, 100, 150],
 	objective=["binary:logistic"],
 	eval_metric=["auc"],
     learning_rate=[0.03, 0.05, 0.7],
