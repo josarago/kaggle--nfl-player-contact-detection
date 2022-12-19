@@ -1,10 +1,12 @@
 
 import pandas as pd
+import torch
 from sklearn.metrics import matthews_corrcoef
 from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold, GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 import lightgbm as lgb
+import xgboost as xgb
 
 
 from config import (
@@ -31,6 +33,43 @@ TRACKING_DATA_COLS = (
 )
 
 CV_N_SPLITS = 3
+
+GRID_SEARCH_PARAM_GRID = dict()
+GRID_SEARCH_PARAM_GRID["decision_tree"] = dict(
+	criterion = ["gini", "entropy", "log_loss"],
+	# splitter='best',
+	max_depth=[1], 
+	min_samples_split=[5, 10, 20],
+	min_samples_leaf=[5, 10, 20],
+	# min_weight_fraction_leaf=0.0,
+	max_features=[1],
+	# random_state=None,
+	# max_leaf_nodes=None,
+	# min_impurity_decrease=0.0,
+	class_weight=["balanced"],
+	# ccp_alpha=0.0
+)
+
+GRID_SEARCH_PARAM_GRID["lgbm"] = dict(
+	num_leaves=[20, 30, 40],
+	max_depth=[4, 5, 7],
+	learning_rate=[0.005, 0.01, 0.02],
+	n_estimators=[60, 80, 100],
+	class_weight=["balanced"], 
+	subsample=[0.8, 0.9], 
+	# reg_alpha=[0.0, 0.01],
+	# reg_lambda=[0.0, 0.01],
+	n_jobs=[-1]
+)
+
+
+GRID_SEARCH_PARAM_GRID["xgb"] = dict(
+	tree_method=["gpu_hist"] if torch.cuda.is_available() else ["hist"],
+	n_estimators=[20, , 100, 150],
+	objective=["binary:logistic"],
+	eval_metric=["auc"],
+    learning_rate=[0.03, 0.05, 0.7],
+)
 
 class ModelTrainer:
 	def __init__(self,
@@ -128,11 +167,9 @@ class ModelTrainer:
 		elif self._model_type == "lgbm":
 			print("creating LightGBM classifier")
 			self.model = lgb.LGBMClassifier(**params)
-
-
-	def simple_train(self, X, y, params=None):
-		self.init_model()
-		self.model.fit(X, y)
+		elif self._model_type == "xgb":
+			print("creating XGBoost classifier")
+			self.model = xgb.XGBClassifier(**params)
 
 	def grid_search(
 			self,
@@ -164,7 +201,7 @@ class ModelTrainer:
 		self.clf.fit(X, y, groups=groups)
 		self._best_params = self.clf.best_params_
 
-	def full_fit_with_best_params(self, X, y):
+	def fit_with_best_params(self, X, y):
 		self.init_model(params=self._best_params)
 		self.model.fit(X, y)
 
