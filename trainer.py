@@ -176,7 +176,8 @@ class ModelTrainer:
 			X,
 			y,
 			groups=None,
-			param_grid=None
+			param_grid=None,
+			scoring="roc_auc"
 		):
 		self.init_model()
 		if groups is not None:
@@ -193,7 +194,7 @@ class ModelTrainer:
 		self.clf = GridSearchCV(
 			self.model,
 			param_grid=_param_grid,
-			scoring="roc_auc",
+			scoring=scoring,
 			cv=cv,
 			n_jobs=-1,
 			verbose=3
