@@ -4,7 +4,9 @@ import torch
 from sklearn.metrics import matthews_corrcoef
 from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold, GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import LinearSVC
+
+import optuna
+
 import lightgbm as lgb
 import xgboost as xgb
 
@@ -64,11 +66,15 @@ GRID_SEARCH_PARAM_GRID["lgbm"] = dict(
 
 
 GRID_SEARCH_PARAM_GRID["xgb"] = dict(
-	tree_method=["gpu_hist"] if torch.cuda.is_available() else ["hist"],
 	n_estimators=[20, 100, 150],
-	objective=["binary:logistic"],
-	eval_metric=["auc"],
-    learning_rate=[0.03, 0.05, 0.7],
+    learning_rate=[0.03, 0.05, 0.7]
+)
+
+PARAM_DISTRIBUTIONS = dict()
+PARAM_DISTRIBUTIONS["xgb"] = dict(
+	n_estimators=optuna.distributions.IntDistribution(10, 150, log=True),
+	learning_rate=optuna.distributions.FloatDistribution(0.005, 0.5, log=True)
+	
 )
 
 class ModelTrainer:
@@ -169,7 +175,12 @@ class ModelTrainer:
 			self.model = lgb.LGBMClassifier(**params)
 		elif self._model_type == "xgb":
 			print("creating XGBoost classifier")
-			self.model = xgb.XGBClassifier(**params)
+			self.model = xgb.XGBClassifier(
+				tree_method="gpu_hist" if torch.cuda.is_available() else "hist",
+				objective="binary:logistic",
+				eval_metric="auc",
+				**params
+			)
 
 	def grid_search(
 			self,
@@ -195,6 +206,37 @@ class ModelTrainer:
 			self.model,
 			param_grid=_param_grid,
 			scoring=scoring,
+			cv=cv,
+			n_jobs=-1,
+			verbose=3
+		)
+		self.clf.fit(X, y, groups=groups)
+		self._best_params = self.clf.best_params_
+
+	def optuna_search(self,
+			X,
+			y,
+			groups=None,
+			param_distributions=None,
+			n_trials=100
+		):
+		self.init_model()
+		if groups is not None:
+			cv = StratifiedGroupKFold(
+				n_splits=CV_N_SPLITS,
+				shuffle=False,
+			)
+		else:
+			cv = StratifiedKFold(
+				n_splits=CV_N_SPLITS,
+			)
+			
+		_param_distributions = param_distributions if param_distributions is not None else PARAM_DISTRIBUTIONS[self._model_type]
+		self.clf = optuna.integration.OptunaSearchCV(
+			self.model,
+			param_distributions=_param_distributions,
+			n_trials=n_trials,
+			scoring="roc_auc",
 			cv=cv,
 			n_jobs=-1,
 			verbose=3
