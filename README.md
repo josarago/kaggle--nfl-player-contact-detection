@@ -74,4 +74,37 @@ Dummy classifier: the contact is 1 with probability the mean value of the column
 
 **Score**: 0.594
 
+## Submission 4
+**Features**:
+- distance between players
+- relative speed between players
+- are the players in the same team (boolean)
+- is contact with ground (boolean)
+- raw features: 
+	`x_position`,
+    `y_position`,
+    `speed`,
+    `direction`,    
+    `sa`
+- made cyclical features out of: `orientation`, `acceleration`
+- `cos(orientation_<n> - directio_<n>_)` for single players
+- `cos(orientation_1 - orientation_2)` for two players contacts
+
+**Model**: XGBoost, Optuna
+
+**Score**: 0.594
+
+
+## Submission 5
+same as **#4** but using `matthews_corrcoeff` for `scoring` 
+
+**Score**: 0.599
+
+
+## Submission 6
+Increasing number of cross validation splits from 3 to 5
+
+**Score**:
+
+
 
