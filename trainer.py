@@ -163,11 +163,6 @@ class ModelTrainer:
 
 		return feature_df
 
-	# def get_training_set(self, df):
-	# 	df_features = df[self._feature_columns]
-	# 	y = df[self._target_columns].values
-	# 	return df_features, y
-
 	def init_model(self, params={}):
 		if self._model_type == "decision_tree":
 			print("creating Decision Tree classifier")
