@@ -70,8 +70,8 @@ Dummy classifier: the contact is 1 with probability the mean value of the column
     `acceleration`,
     `sa`
 
-**Model**: Decision Tree classifier, no hyperparameter tuning
+**Model**: XGBoost, Optuna
 
-**Score**: 0.462
+**Score**: 0.594
 
 
