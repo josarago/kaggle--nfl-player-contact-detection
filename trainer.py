@@ -1,4 +1,3 @@
-
 import pandas as pd
 import torch
 from sklearn.metrics import matthews_corrcoef
@@ -16,8 +15,11 @@ from config import (
 	TRAIN_TRACKING_PATH,
 	SUBMISSION_REF_PATH,
 	TEST_TRACKING_PATH,
-	SUBMISSION_FILE_NAME
+	SUBMISSION_FILE_NAME,
+	get_logger
 )
+
+LOGGER = get_logger()
 
 from utils import add_contact_id, expand_contact_id
 from pipelines import tracking_pipeline
@@ -116,11 +118,13 @@ class ModelTrainer:
 			parse_dates=["datetime"],
 			dtype={"nfl_player_id_1": "str", "nfl_player_id_2": "str"}
 		)
+		LOGGER.info("`train_labels.csv` file loaded")
 		train_tracking_df = pd.read_csv(
 			self.train_tracking_path,
 			parse_dates=["datetime"],
 			dtype={"nfl_player_id": "str"}
 		)
+		LOGGER.info("`train_player_tracking.csv` file loaded")
 		return train_labels_df, train_tracking_df
 	
 	def load_test_data(self):
@@ -165,13 +169,13 @@ class ModelTrainer:
 
 	def init_model(self, params={}):
 		if self._model_type == "decision_tree":
-			print("creating Decision Tree classifier")
+			LOGGER.info("creating Decision Tree classifier")
 			self.base_model = DecisionTreeClassifier(**params)
 		elif self._model_type == "lgbm":
-			print("creating LightGBM classifier")
+			LOGGER.info("creating LightGBM classifier")
 			self.base_model = lgb.LGBMClassifier(**params)
 		elif self._model_type == "xgb":
-			print("creating XGBoost classifier")
+			LOGGER.info("creating XGBoost classifier")
 			self.base_model = xgb.XGBClassifier(
 				tree_method="gpu_hist" if torch.cuda.is_available() else "hist",
 				objective="binary:logistic",
@@ -193,10 +197,12 @@ class ModelTrainer:
 				n_splits=CV_N_SPLITS,
 				shuffle=False,
 			)
+			LOGGER.info(f"Using `StratifiedGroupKFold` for cross validation")
 		else:
 			cv = StratifiedKFold(
 				n_splits=CV_N_SPLITS,
 			)
+			LOGGER.info(f"Using `StratifiedKFold` for cross validation")
 			
 		_param_grid = param_grid if param_grid is not None else GRID_SEARCH_PARAM_GRID[self._model_type]
 		self.clf = GridSearchCV(
@@ -208,8 +214,11 @@ class ModelTrainer:
 			verbose=3,
 			refit=True
 		)
+		LOGGER.info(f"Using `GridSearchCV` for hyper-parameters tuning: param_grid = {_param_grid}")
 		self.clf.fit(X, y, groups=groups)
+		LOGGER.info(f"Best parameters: {self.clf.best_params_}")
 		self.model = self.clf.best_estimator_
+		LOGGER.info(f"Model refit with best parameters")
 
 	def optuna_search(self,
 			X,
@@ -224,10 +233,12 @@ class ModelTrainer:
 				n_splits=CV_N_SPLITS,
 				shuffle=False,
 			)
+			LOGGER.info(f"Using `StratifiedGroupKFold` for cross validation")
 		else:
 			cv = StratifiedKFold(
 				n_splits=CV_N_SPLITS,
 			)
+			LOGGER.info(f"Using `StratifiedKFold` for cross validation")
 			
 		_param_distributions = param_distributions if param_distributions is not None else PARAM_DISTRIBUTIONS[self._model_type]
 		self.clf = optuna.integration.OptunaSearchCV(
@@ -240,8 +251,11 @@ class ModelTrainer:
 			verbose=3,
 			refit=True
 		)
+		LOGGER.info(f"Using optuna for hyper-parameters tuning: n_trials = {n_trials}")
 		self.clf.fit(X, y, groups=groups)
+		LOGGER.info(f"Best parameters: {self.clf.best_params_}")
 		self.model = self.clf.best_estimator_
+		LOGGER.info(f"Model refit with best parameters")
 
 
 	def evaluate(self, y_true, y_pred):
@@ -264,6 +278,6 @@ class ModelTrainer:
 		# submission
 		submission_df = submission_df[['contact_id', 'contact']]
 		if write_file:
-			print(f"Writing submission to: '{self._submission_file_name}'")
+			LOGGER.info(f"Writing submission to: '{self._submission_file_name}'")
 			submission_df.to_csv(self._submission_file_name, index=False)
 		return submission_df
