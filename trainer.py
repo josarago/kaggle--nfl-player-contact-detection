@@ -118,22 +118,24 @@ class ModelTrainer:
 			parse_dates=["datetime"],
 			dtype={"nfl_player_id_1": "str", "nfl_player_id_2": "str"}
 		)
-		LOGGER.info("`train_labels.csv` file loaded")
+		LOGGER.info(f"`{self.train_labels_path}` file loaded")
 		train_tracking_df = pd.read_csv(
 			self.train_tracking_path,
 			parse_dates=["datetime"],
 			dtype={"nfl_player_id": "str"}
 		)
-		LOGGER.info("`train_player_tracking.csv` file loaded")
+		LOGGER.info(f"`{self.train_tracking_path}` file loaded")
 		return train_labels_df, train_tracking_df
 	
 	def load_test_data(self):
 		submission_ref_df = pd.read_csv(self.submission_ref_path)
+		LOGGER.info(f"`{self.submission_ref_path}` file loaded")
 		test_tracking_df= pd.read_csv(
 			self.test_tracking_path,
 			parse_dates=["datetime"],
 			dtype={"nfl_player_id": "str"}
 		)
+		LOGGER.info(f"`{self.test_tracking_path}` file loaded")
 		return submission_ref_df, test_tracking_df
 
 	def join_tracking_data(
@@ -149,6 +151,7 @@ class ModelTrainer:
 		if sample_frac is None or sample_frac == 1.0:
 			_contact_df = contact_df
 		else:
+			LOGGER.info(f"Using subsanpling: sample_frac = {sample_frac} ")
 			_contact_df = contact_df.sample(frac=sample_frac)
 
 		feature_df = _contact_df \
@@ -164,7 +167,7 @@ class ModelTrainer:
 				right_on=["game_play", "step", "nfl_player_id"],
 			how="left") \
 			.drop(columns=["nfl_player_id"])
-
+		LOGGER.info("joined tracking data on label data")
 		return feature_df
 
 	def init_model(self, params={}):
@@ -253,9 +256,8 @@ class ModelTrainer:
 		)
 		LOGGER.info(f"Using optuna for hyper-parameters tuning: n_trials = {n_trials}")
 		self.clf.fit(X, y, groups=groups)
-		LOGGER.info(f"Best parameters: {self.clf.best_params_}")
 		self.model = self.clf.best_estimator_
-		LOGGER.info(f"Model refit with best parameters")
+		LOGGER.info(f"Model refit with best parameters: {self.clf.best_params_}")
 
 
 	def evaluate(self, y_true, y_pred):
@@ -277,6 +279,7 @@ class ModelTrainer:
 		submission_df["contact"] = self.model.predict(X_test)
 		# submission
 		submission_df = submission_df[['contact_id', 'contact']]
+		LOGGER.info("Submission dataframe created")
 		if write_file:
 			LOGGER.info(f"Writing submission to: '{self._submission_file_name}'")
 			submission_df.to_csv(self._submission_file_name, index=False)
