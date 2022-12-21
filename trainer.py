@@ -41,7 +41,7 @@ TRACKING_DATA_COLS = (
 	"position"
 )
 
-CV_N_SPLITS = 3
+CV_N_SPLITS = 5
 
 GRID_SEARCH_PARAM_GRID = dict()
 GRID_SEARCH_PARAM_GRID["decision_tree"] = dict(
@@ -197,19 +197,20 @@ class ModelTrainer:
 			X,
 			y,
 			groups=None,
+			n_splits=CV_N_SPLITS,
 			param_grid=None,
 			scoring=MATTHEWS_CORRCOEFF_SCORER
 		):
 		self.init_model()
 		if groups is not None:
 			cv = StratifiedGroupKFold(
-				n_splits=CV_N_SPLITS,
+				n_splits=n_splits,
 				shuffle=False,
 			)
 			LOGGER.info(f"Using `StratifiedGroupKFold` for cross validation")
 		else:
 			cv = StratifiedKFold(
-				n_splits=CV_N_SPLITS,
+				n_splits=n_splits,
 			)
 			LOGGER.info(f"Using `StratifiedKFold` for cross validation")
 			
@@ -233,6 +234,7 @@ class ModelTrainer:
 			X,
 			y,
 			groups=None,
+			n_splits=CV_N_SPLITS,
 			param_distributions=None,
 			n_trials=100,
 			scoring=MATTHEWS_CORRCOEFF_SCORER
@@ -241,15 +243,15 @@ class ModelTrainer:
 		self.init_model()
 		if groups is not None:
 			cv = StratifiedGroupKFold(
-				n_splits=CV_N_SPLITS,
+				n_splits=n_splits,
 				shuffle=False,
 			)
-			LOGGER.info(f"Using `StratifiedGroupKFold` for cross validation with {CV_N_SPLITS} splits")
+			LOGGER.info(f"Using `StratifiedGroupKFold` for cross validation with {n_splits} splits")
 		else:
 			cv = StratifiedKFold(
-				n_splits=CV_N_SPLITS,
+				n_splits=n_splits,
 			)
-			LOGGER.info(f"Using `StratifiedKFold` for cross validation with {CV_N_SPLITS} splits")
+			LOGGER.info(f"Using `StratifiedKFold` for cross validation with {n_splits} splits")
 			
 		_param_distributions = param_distributions if param_distributions is not None else PARAM_DISTRIBUTIONS[self._model_type]
 		self.clf = optuna.integration.OptunaSearchCV(
