@@ -74,9 +74,10 @@ GRID_SEARCH_PARAM_GRID["xgb"] = dict(
 
 PARAM_DISTRIBUTIONS = dict()
 PARAM_DISTRIBUTIONS["xgb"] = dict(
-	n_estimators=optuna.distributions.IntDistribution(10, 150, log=True),
-	learning_rate=optuna.distributions.FloatDistribution(0.005, 0.5, log=True)
-	
+    n_estimators=optuna.distributions.IntDistribution(10, 150, log=True),
+    max_depth=optuna.distributions.IntDistribution(5, 20, log=False),
+    max_leaves=optuna.distributions.IntDistribution(5, 100, log=True),
+    learning_rate=optuna.distributions.FloatDistribution(0.005, 0.5, log=True),   
 )
 
 class ModelTrainer:
@@ -236,12 +237,12 @@ class ModelTrainer:
 				n_splits=CV_N_SPLITS,
 				shuffle=False,
 			)
-			LOGGER.info(f"Using `StratifiedGroupKFold` for cross validation")
+			LOGGER.info(f"Using `StratifiedGroupKFold` for cross validation with {CV_N_SPLITS} splits")
 		else:
 			cv = StratifiedKFold(
 				n_splits=CV_N_SPLITS,
 			)
-			LOGGER.info(f"Using `StratifiedKFold` for cross validation")
+			LOGGER.info(f"Using `StratifiedKFold` for cross validation with {CV_N_SPLITS} splits")
 			
 		_param_distributions = param_distributions if param_distributions is not None else PARAM_DISTRIBUTIONS[self._model_type]
 		self.clf = optuna.integration.OptunaSearchCV(
@@ -258,7 +259,6 @@ class ModelTrainer:
 		self.clf.fit(X, y, groups=groups)
 		self.model = self.clf.best_estimator_
 		LOGGER.info(f"Model refit with best parameters: {self.clf.best_params_}")
-
 
 	def evaluate(self, y_true, y_pred):
 		return matthews_corrcoef(y_true, y_pred)
