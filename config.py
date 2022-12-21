@@ -26,7 +26,7 @@ OUTPUT_DIR = './'
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
-def get_logger(use_file:bool = False):  
+def get_logger(use_file:bool = False, name=None):  
     logger = getLogger(__name__)
     logger.setLevel(INFO)
     handler1 = StreamHandler()
