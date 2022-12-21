@@ -231,6 +231,7 @@ class ModelTrainer:
 			param_distributions=None,
 			n_trials=100
 		):
+		LOGGER.info(f"training set shape: {X.shape}")
 		self.init_model()
 		if groups is not None:
 			cv = StratifiedGroupKFold(

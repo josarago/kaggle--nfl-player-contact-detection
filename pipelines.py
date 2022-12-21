@@ -1,21 +1,28 @@
 import numpy as np
+import pandas as pd
 
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 
+def expand_feature_list(features):
+    return [f"{col}_1" for col in features] + [f"{col}_2" for col in features]
+
+
 _RAW_TRACKING_FEATURES = (
     'x_position',
     'y_position',
     'speed',
-    'direction',
-    'orientation',
     'acceleration',
     'sa'
 )
+RAW_TRACKING_FEATURES = expand_feature_list(_RAW_TRACKING_FEATURES)
 
-RAW_TRACKING_FEATURES = [f"{col}_1" for col in _RAW_TRACKING_FEATURES] + [f"{col}_2" for col in _RAW_TRACKING_FEATURES]
+_ANGLE_FEATURES =  ('direction', 'orientation')
+ANGLE_FEATURES = expand_feature_list(_ANGLE_FEATURES)
+
+
 
 def get_players_distance(df):
     return ((df["x_position_2"] - df["x_position_1"]) ** 2 +  \
@@ -75,13 +82,54 @@ raw_tracking_pipe = Pipeline(
 
 raw_features_pipe = ColumnTransformer([("raw_tracking_features", raw_tracking_pipe, RAW_TRACKING_FEATURES)])
 
+def make_cyclical_feature(x):
+    _cos = np.cos(x * np.pi / 180)
+    _sin = np.sin(x * np.pi / 180)
+    return np.concatenate([_cos, _sin], axis=1)
+
+cyclical_features_pipe = Pipeline(
+    steps=[
+        ("make_cyclical_features", FunctionTransformer(make_cyclical_feature)),
+        ("impute", SimpleImputer(strategy="constant", fill_value=-2))
+    ]
+)
+
+angle_features_pipe = ColumnTransformer([("raw_tracking_features", cyclical_features_pipe, ANGLE_FEATURES)])
+
+
+def player_orientation_vs_direction(df):
+    return pd.concat(
+        [(df[f"orientation_{n}"] - df[f"direction_{n}"]) * np.pi / 180 for n in [1, 2]],
+        axis=1
+    ).apply(np.cos)
+
+player_orientation_vs_direction_pipe = Pipeline(
+    steps=[
+        ("get_relative_speed", FunctionTransformer(player_orientation_vs_direction)),
+        ("impute", SimpleImputer(strategy="constant", fill_value=-2))
+    ]
+)
+
+def orientation_diff_cos(df):
+    return (df["orientation_1"] - df["orientation_2"]).apply(np.cos).values.reshape(-1 ,1)
+
+orientation_diff_cos_pipe = Pipeline(
+    steps=[
+        ("orientation_diff_cos", FunctionTransformer(orientation_diff_cos))
+    ]
+)
+
+
 tracking_pipeline = FeatureUnion(
     [   
         ("raw_features", raw_features_pipe),
+        ("angle_features", angle_features_pipe),
         ("players_distance", players_distance_pipe),
         ("relative_speed", players_relative_speed_pipe),
         ("same_team", same_team_pipe),
-        ("is_ground_contact", is_ground_contact_pipe)
+        ("is_ground_contact", is_ground_contact_pipe),
+        ("player_orientation_vs_direction", player_orientation_vs_direction_pipe),
+        ("orientation_diff_cos_pipe", orientation_diff_cos_pipe)
     ]
 
 )
