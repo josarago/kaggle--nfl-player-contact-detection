@@ -3,6 +3,7 @@ import torch
 from sklearn.metrics import matthews_corrcoef
 from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold, GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import make_scorer
 
 import optuna
 
@@ -23,6 +24,10 @@ LOGGER = get_logger()
 
 from utils import add_contact_id, expand_contact_id
 from pipelines import tracking_pipeline
+
+
+MATTHEWS_CORRCOEFF_SCORER = make_scorer(matthews_corrcoef)
+	
 
 TRACKING_DATA_COLS = (
 	"x_position", 
@@ -193,7 +198,7 @@ class ModelTrainer:
 			y,
 			groups=None,
 			param_grid=None,
-			scoring="roc_auc"
+			scoring=MATTHEWS_CORRCOEFF_SCORER
 		):
 		self.init_model()
 		if groups is not None:
@@ -229,7 +234,8 @@ class ModelTrainer:
 			y,
 			groups=None,
 			param_distributions=None,
-			n_trials=100
+			n_trials=100,
+			scoring=MATTHEWS_CORRCOEFF_SCORER
 		):
 		LOGGER.info(f"training set shape: {X.shape}")
 		self.init_model()
@@ -250,13 +256,13 @@ class ModelTrainer:
 			self.base_model,
 			param_distributions=_param_distributions,
 			n_trials=n_trials,
-			scoring="roc_auc",
+			scoring=scoring,
 			cv=cv,
 			n_jobs=-1,
 			verbose=3,
 			refit=True
 		)
-		LOGGER.info(f"Using optuna for hyper-parameters tuning: n_trials = {n_trials}")
+		LOGGER.info(f"Using optuna for hyper-parameters tuning: n_trials = {n_trials}, scoring: {scoring}")
 		self.clf.fit(X, y, groups=groups)
 		self.model = self.clf.best_estimator_
 		LOGGER.info(f"Model refit with best parameters: {self.clf.best_params_}")
