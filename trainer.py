@@ -94,7 +94,9 @@ class ModelTrainer:
 
 		self._tracking_pipeline = tracking_pipeline
 		self._model_type = model_type
+		self.base_model = None
 		self.model = None
+		self.clf = None
 		
 		self.submission_ref_path = submission_ref_path
 		self.submission_ref_df = None
@@ -169,13 +171,13 @@ class ModelTrainer:
 	def init_model(self, params={}):
 		if self._model_type == "decision_tree":
 			print("creating Decision Tree classifier")
-			self.model = DecisionTreeClassifier(**params)
+			self.base_model = DecisionTreeClassifier(**params)
 		elif self._model_type == "lgbm":
 			print("creating LightGBM classifier")
-			self.model = lgb.LGBMClassifier(**params)
+			self.base_model = lgb.LGBMClassifier(**params)
 		elif self._model_type == "xgb":
 			print("creating XGBoost classifier")
-			self.model = xgb.XGBClassifier(
+			self.base_model = xgb.XGBClassifier(
 				tree_method="gpu_hist" if torch.cuda.is_available() else "hist",
 				objective="binary:logistic",
 				eval_metric="auc",
@@ -203,15 +205,16 @@ class ModelTrainer:
 			
 		_param_grid = param_grid if param_grid is not None else GRID_SEARCH_PARAM_GRID[self._model_type]
 		self.clf = GridSearchCV(
-			self.model,
+			self.base_model,
 			param_grid=_param_grid,
 			scoring=scoring,
 			cv=cv,
 			n_jobs=-1,
-			verbose=3
+			verbose=3,
+			refit=True
 		)
 		self.clf.fit(X, y, groups=groups)
-		self._best_params = self.clf.best_params_
+		self.model = self.clf.best_estimator_
 
 	def optuna_search(self,
 			X,
@@ -233,20 +236,18 @@ class ModelTrainer:
 			
 		_param_distributions = param_distributions if param_distributions is not None else PARAM_DISTRIBUTIONS[self._model_type]
 		self.clf = optuna.integration.OptunaSearchCV(
-			self.model,
+			self.base_model,
 			param_distributions=_param_distributions,
 			n_trials=n_trials,
 			scoring="roc_auc",
 			cv=cv,
 			n_jobs=-1,
-			verbose=3
+			verbose=3,
+			refit=True
 		)
 		self.clf.fit(X, y, groups=groups)
-		self._best_params = self.clf.best_params_
+		self.model = self.clf.best_estimator_
 
-	def fit_with_best_params(self, X, y):
-		self.init_model(params=self._best_params)
-		self.model.fit(X, y)
 
 	def evaluate(self, y_true, y_pred):
 		return matthews_corrcoef(y_true, y_pred)
