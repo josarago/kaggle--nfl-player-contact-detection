@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import torch
 from sklearn.metrics import matthews_corrcoef
@@ -41,7 +42,7 @@ TRACKING_DATA_COLS = (
 	"position"
 )
 
-CV_N_SPLITS = 5
+CV_N_SPLITS = 3
 
 GRID_SEARCH_PARAM_GRID = dict()
 GRID_SEARCH_PARAM_GRID["decision_tree"] = dict(
@@ -176,7 +177,7 @@ class ModelTrainer:
 		LOGGER.info("joined tracking data on label data")
 		return feature_df
 
-	def init_model(self, params={}):
+	def init_model(self, y=None, params={}):
 		if self._model_type == "decision_tree":
 			LOGGER.info("creating Decision Tree classifier")
 			self.base_model = DecisionTreeClassifier(**params)
@@ -185,10 +186,16 @@ class ModelTrainer:
 			self.base_model = lgb.LGBMClassifier(**params)
 		elif self._model_type == "xgb":
 			LOGGER.info("creating XGBoost classifier")
-			self.base_model = xgb.XGBClassifier(
+			base_params = dict(
 				tree_method="gpu_hist" if torch.cuda.is_available() else "hist",
 				objective="binary:logistic",
-				eval_metric="auc",
+				eval_metric="auc"
+			)
+			if y is not None:
+				ratio = float(np.sum(y == 0)) / np.sum(y == 1)
+			base_params["scale_pos_weight"] = ratio
+			self.base_model = xgb.XGBClassifier(
+				**base_params,
 				**params
 			)
 
@@ -240,7 +247,7 @@ class ModelTrainer:
 			scoring=MATTHEWS_CORRCOEFF_SCORER
 		):
 		LOGGER.info(f"training set shape: {X.shape}")
-		self.init_model()
+		self.init_model(y=y)
 		if groups is not None:
 			cv = StratifiedGroupKFold(
 				n_splits=n_splits,

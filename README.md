@@ -104,7 +104,20 @@ same as **#4** but using `matthews_corrcoeff` for `scoring`
 ## Submission 6
 Increasing number of cross validation splits from 3 to 5
 
-**Score**:
+**Score**: 0.597 not helping
+
+
+## Submission 7
+using `scale_pos_weight` parameters to handle class imbalance
+
+**Score**: 
+
+## Submission 8
+Optuna search with small number of trials semm to show that:
+- creating an independent feature pipeline for ground contact and one for player contact doesn't improve performance
+- creating two models, one for player contact and one for ground contact seems to help
+
+**Score**: 
 
 
 
