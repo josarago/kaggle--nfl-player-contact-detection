@@ -177,7 +177,7 @@ class ModelTrainer:
 		LOGGER.info("joined tracking data on label data")
 		return feature_df
 
-	def init_model(self, y=None, params={}):
+	def init_model(self, params={}):
 		if self._model_type == "decision_tree":
 			LOGGER.info("creating Decision Tree classifier")
 			self.base_model = DecisionTreeClassifier(**params)
@@ -191,9 +191,6 @@ class ModelTrainer:
 				objective="binary:logistic",
 				eval_metric="auc"
 			)
-			if y is not None:
-				ratio = float(np.sum(y == 0)) / np.sum(y == 1)
-			base_params["scale_pos_weight"] = ratio
 			self.base_model = xgb.XGBClassifier(
 				**base_params,
 				**params
@@ -247,7 +244,7 @@ class ModelTrainer:
 			scoring=MATTHEWS_CORRCOEFF_SCORER
 		):
 		LOGGER.info(f"training set shape: {X.shape}")
-		self.init_model(y=y)
+		self.init_model()
 		if groups is not None:
 			cv = StratifiedGroupKFold(
 				n_splits=n_splits,
