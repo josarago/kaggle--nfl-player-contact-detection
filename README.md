@@ -74,4 +74,50 @@ Dummy classifier: the contact is 1 with probability the mean value of the column
 
 **Score**: 0.594
 
+## Submission 4
+**Features**:
+- distance between players
+- relative speed between players
+- are the players in the same team (boolean)
+- is contact with ground (boolean)
+- raw features: 
+	`x_position`,
+    `y_position`,
+    `speed`,
+    `direction`,    
+    `sa`
+- made cyclical features out of: `orientation`, `acceleration`
+- `cos(orientation_<n> - directio_<n>_)` for single players
+- `cos(orientation_1 - orientation_2)` for two players contacts
+
+**Model**: XGBoost, Optuna
+
+**Score**: 0.594
+
+
+## Submission 5
+same as **#4** but using `matthews_corrcoeff` for `scoring` 
+
+**Score**: 0.599
+
+
+## Submission 6
+Increasing number of cross validation splits from 3 to 5
+
+**Score**: 0.597 not helping
+
+
+## Submission 7
+using `scale_pos_weight` parameters to handle class imbalance
+
+**Score**: 
+
+## Submission 8
+Optuna search with small number of trials semm to show that:
+- creating an independent feature pipeline for ground contact and one for player contact doesn't improve performance
+- creating two models, one for player contact and one for ground contact seems to help
+
+**Score**: 
+
+
 
