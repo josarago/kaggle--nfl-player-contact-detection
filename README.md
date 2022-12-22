@@ -109,11 +109,17 @@ Increasing number of cross validation splits from 3 to 5
 
 ## Submission 7
 using `scale_pos_weight` parameters to handle class imbalance
+huge degradation in performance... 🤔
 
-**Score**: 
+**Score**: 0.465 
 
 ## Submission 8
-Optuna search with small number of trials semm to show that:
+we try again but with `'roc_auc`'  scoring
+
+**Score**: ....
+
+## Submission xxx
+Optuna search with small number of trials seem to show that:
 - creating an independent feature pipeline for ground contact and one for player contact doesn't improve performance
 - creating two models, one for player contact and one for ground contact seems to help
 
