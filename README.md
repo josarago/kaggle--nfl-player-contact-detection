@@ -1,4 +1,4 @@
-# Kaggle competition: [1st and Future - Player Contact Detection](https://www.kaggle.com/competitions/nfl-player-contact-detection)
+# (WIP) Kaggle competition: [1st and Future - Player Contact Detection](https://www.kaggle.com/competitions/nfl-player-contact-detection)
 ### Detect Player Contacts from Sensor and Video Data
 #
 # First step: Using sensor data
