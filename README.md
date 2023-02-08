@@ -109,7 +109,7 @@ Increasing number of cross validation splits from 3 to 5
 
 ## Submission 7
 using `scale_pos_weight` parameters to handle class imbalance
-huge degradation in performance... 🤔
+surprisingly causes huge degradation in performance... 🤔
 
 **Score**: 0.465 
 
